@@ -1,15 +1,7 @@
 open Graphics
-open Random
 
-
-let () = print_endline "test";;
-
-let cell_color = function
-| 0 -> white (* nécessite l’ouverture de Graphics *)
-| _ -> black ;;
 let new_cell = 1 ;; (* cellule vivante *)
 let empty = 0 ;;
-let size_cell = 10 ;;
 
 let is_alive cell = cell <> empty
 
@@ -50,11 +42,11 @@ let put_cell cell (x,y) board =
         else el :: put cell (x - 1, y) rest
   in put cell (x, y) board
 
-let rec count_neighbours (x,y) board =
+let count_neighbours (x,y) board =
   let rec count_neighbours_in_row y row =
     match row with
     | [] -> 0
-    | hd :: tl ->
+    | _ :: tl ->
         let count_right = if is_alive(get_cell(x, y+1) board) then 1 else 0 in
         let count_left = if is_alive(get_cell(x, y-1) board) then 1 else 0 in
         count_right + count_left + count_neighbours_in_row (y + 1) tl
@@ -98,16 +90,14 @@ let rec draw_line line size (x,y) = match line with
   |[] -> ()
   |e::l -> draw_cell (y,x) size e; draw_line l size  (x+size,y)
 
-let board = [[1;1;1;1;1;1;1;1;1;1];
-             [0;0;0;0;0;0;0;0;0;0];
-             [1;0;1;0;1;0;1;0;1;0];
-             [0;1;0;1;0;1;0;1;0;1];
-             [0;0;0;0;0;0;0;0;0;0];
-             [1;1;1;1;1;1;1;1;1;1];
-             [0;0;0;0;0;0;0;0;0;0];
-             [1;0;1;0;1;0;1;0;1;0];
-             [0;1;0;1;0;1;0;1;0;1];
-             [0;0;0;0;0;0;0;0;0;0]]
+let draw_board board size =
+  clear_graph();
+  let (x,y) = (0,0) in
+  let rec aux (x,y) = function
+    |[] -> ()
+    |e::l -> draw_line e size (x,y); aux (x,y+size) l
+  in
+  aux (x,y) board
 
 let rec seed_life board size nb_cell = match nb_cell with
 | 0 -> board
@@ -120,3 +110,17 @@ let new_board size nb_cell =
   let nw_brd = gen_board size 0 in
   seed_life nw_brd size nb_cell
 
+let next_generation board size =
+  let rec fun2 (x,y) board2 = match (x,y) with
+  | (x,y) when x = size && y = size -> board2
+  | (_,y) when y = size -> board2
+  | (_,_) -> fun2 (x, y+1) (put_cell (rules (get_cell(x,y) board) (count_neighbours(x,y) board)) (x,y) board2)
+in fun2 (0,0) board
+
+let rec game board size n = match n with
+  | 0 -> ()
+  | n -> draw_board board size; game (next_generation board size) size (n-1)
+
+let new_game size nb n = open_window size ; game (new_board size nb) size n
+
+let () = new_game 300 110 1000
