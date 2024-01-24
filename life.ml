@@ -1,7 +1,10 @@
 open Graphics
 
-let new_cell = 1 ;; (* cellule vivante *)
-let empty = 0 ;;
+let cell_color = function
+| 0 -> white
+| _ -> black 
+let new_cell = 1  (* cellule vivante *)
+let empty = 0
 
 let is_alive cell = cell <> empty
 
@@ -62,42 +65,26 @@ let count_neighbours (x,y) board =
 
 let open_window size = open_graph (" " ^string_of_int size ^ "x" ^ string_of_int (size+20))
 
-let draw_square (x,y) size = 
-  moveto x y;
-  lineto (x+size) y;
-  lineto (x+size) (y+size);
-  lineto x (y+size);
-  lineto x y
+let grey = rgb 127 127 127;;
 
-let draw_fill (x,y) size color =
+let draw_cell (x,y) size color =
   set_color color;
-  let finalX = x+size in 
-  let rec aux x y = 
-    moveto x y;
-    match x with
-    |x when x = finalX -> lineto x (y+size)
-    |x -> lineto x (y+size); aux (x+1) y
-  in
-  aux x y
-  
-let draw_cell (x,y) size cell = 
-  match cell with
-    |0 -> draw_square (x,y) size
-    |1 -> draw_fill (x,y) size black
-    |_ -> failwith "invalid cell"
-
-let rec draw_line line size (x,y) = match line with
-  |[] -> ()
-  |e::l -> draw_cell (y,x) size e; draw_line l size  (x+size,y)
+  fill_rect (x*size) (y*size) size size;
+  set_color grey;
+  draw_rect (x*size) (y*size) size size;;
 
 let draw_board board size =
-  clear_graph();
-  let (x,y) = (0,0) in
-  let rec aux (x,y) = function
-    |[] -> ()
-    |e::l -> draw_line e size (x,y); aux (x,y+size) l
-  in
-  aux (x,y) board
+ clear_graph();
+ let rec draw_board_rec board x =
+   match board with
+     |[] -> ()
+     |h1::t1 -> let rec draw_board_rec_2 l y =
+                  match l with
+                    |[] -> draw_board_rec t1 (x+1)
+                    |h2::t2 -> draw_cell (x,y) size (cell_color h2);
+                      draw_board_rec_2 t2 (y+1)
+                in draw_board_rec_2 h1 0
+ in draw_board_rec board 0;;
 
 let rec seed_life board size nb_cell = match nb_cell with
 | 0 -> board
@@ -123,4 +110,4 @@ let rec game board size n = match n with
 
 let new_game size nb n = open_window size ; game (new_board size nb) size n
 
-let () = new_game 300 110 1000
+let () = new_game 1920 500 1000
