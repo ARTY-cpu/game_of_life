@@ -60,7 +60,7 @@ let count_neighbours (x,y) board =
         count_above + count_below + count_neighbours_in_matrix (x + 1) y tl
   in count_neighbours_in_matrix x y board
 
-let open_window size = open_graph (string_of_int size ^ "x" ^ string_of_int (size+20))
+let open_window size = open_graph (" " ^string_of_int size ^ "x" ^ string_of_int (size+20))
 
 let draw_square (x,y) size = 
   moveto x y;
