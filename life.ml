@@ -1,5 +1,5 @@
-open Graphics;;
-open_graph "";;
+open Graphics
+open Random
 
 
 let () = print_endline "test";;
@@ -11,7 +11,7 @@ let new_cell = 1 ;; (* cellule vivante *)
 let empty = 0 ;;
 let size_cell = 10 ;;
 
-let is_alive cell = cell = 1
+let is_alive cell = cell <> empty
 
 let rules cell n = match n with
   | n when n = 2 -> cell
@@ -41,12 +41,14 @@ let get_cell (x,y) board =
 in getc (x,y) board
 
 let replace l pos a  = List.mapi (fun i x -> if i = pos then a else x) l
+
 let put_cell cell (x,y) board =
-  let rec put cell (x,y) board = match board with
-  | [] -> []
-  | el :: board ->  if x = 0 then replace el y cell
-  else put cell (x-1,y) board
-in put cell (x,y) board
+  let rec put cell (x, y) board = match board with
+    | [] -> []
+    | el :: rest ->
+        if x = 0 then replace el y cell :: rest
+        else el :: put cell (x - 1, y) rest
+  in put cell (x, y) board
 
 let rec count_neighbours (x,y) board =
   let rec count_neighbours_in_row y row =
@@ -68,14 +70,53 @@ let rec count_neighbours (x,y) board =
 
 let open_window size = open_graph (string_of_int size ^ "x" ^ string_of_int (size+20))
 
-let draw_cell (x,y) size color = 
-  let grey = rgb 127 127 127 in
-  let x_size = x * size in
-  let y_size = y * size in
-  set_color grey;
-  draw_rect x_size y_size size size;
-  set_color color;
-  fill_rect (x_size+1) (y_size+1) (size-2) (size-2)
+let draw_square (x,y) size = 
+  moveto x y;
+  lineto (x+size) y;
+  lineto (x+size) (y+size);
+  lineto x (y+size);
+  lineto x y
 
-let draw_board board size =
+let draw_fill (x,y) size color =
+  set_color color;
+  let finalX = x+size in 
+  let rec aux x y = 
+    moveto x y;
+    match x with
+    |x when x = finalX -> lineto x (y+size)
+    |x -> lineto x (y+size); aux (x+1) y
+  in
+  aux x y
   
+let draw_cell (x,y) size cell = 
+  match cell with
+    |0 -> draw_square (x,y) size
+    |1 -> draw_fill (x,y) size black
+    |_ -> failwith "invalid cell"
+
+let rec draw_line line size (x,y) = match line with
+  |[] -> ()
+  |e::l -> draw_cell (y,x) size e; draw_line l size  (x+size,y)
+
+let board = [[1;1;1;1;1;1;1;1;1;1];
+             [0;0;0;0;0;0;0;0;0;0];
+             [1;0;1;0;1;0;1;0;1;0];
+             [0;1;0;1;0;1;0;1;0;1];
+             [0;0;0;0;0;0;0;0;0;0];
+             [1;1;1;1;1;1;1;1;1;1];
+             [0;0;0;0;0;0;0;0;0;0];
+             [1;0;1;0;1;0;1;0;1;0];
+             [0;1;0;1;0;1;0;1;0;1];
+             [0;0;0;0;0;0;0;0;0;0]]
+
+let rec seed_life board size nb_cell = match nb_cell with
+| 0 -> board
+| _ -> let a = Random.int size and b = Random.int size in
+          if get_cell (a,b) board = 1 then seed_life board size nb_cell
+          else
+            let board_2 = put_cell new_cell (a,b) board in seed_life board_2 size (nb_cell - 1)
+
+let new_board size nb_cell =
+  let nw_brd = gen_board size 0 in
+  seed_life nw_brd size nb_cell
+
