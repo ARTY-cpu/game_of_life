@@ -17,12 +17,25 @@ Le jeu de la vie est de la catégorie des automates cellulaires. Celle-ci permet
 Pour changer les paramètres, veuillez les modifier dans la fonction de point d'entrée :
 
 ```ocaml
-let () = new_game 300 110 1000
+let () = new_game cell_size 110 1000
 ```
 
-Le premier paramètre est la taille du tableau. \
+Le premier paramètre est la taille du tableau. Veuillez modifier la définition
+qui est
+
+```ocaml
+let cell_size = 30
+```
+
+ \
 Le deuxième paramètre est le nombre de cellules placés aléatoirement sur le tableau. \
 Le troisième paramètre est le nombre de générations pour lequel le programme va tourner.
+
+NB: Pour un meilleur résultat, veuillez modifier vous-même la ligne par une valeur qui conviendra mieux pour vos tests :
+
+```ocaml
+open_window ( cell_size * cell_size );
+```
 
 ### Compilation
 
@@ -39,4 +52,3 @@ Pour compiler avec Dune et exécuter, se placer dans le dossier principal du pro
 dune build
 dune exec ./life.exe
 ```
-

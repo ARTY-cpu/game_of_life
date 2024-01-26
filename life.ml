@@ -134,7 +134,7 @@ let rec game board size n =
     game next_gen_board size (n - 1))
 
 let new_game board_size initial_cell_count num_generations =
-  open_window 900;
+  open_window ( cell_size * cell_size );
   (* Créer un nouveau plateau de jeu avec
      la taille spécifiée et le nombre de cellules initiales *)
   let game_board = new_board board_size initial_cell_count in
