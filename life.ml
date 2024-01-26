@@ -3,7 +3,7 @@ open Graphics
 let cell_color = function 0 -> white | _ -> black
 let new_cell = 1 (* cellule vivante *)
 let empty = 0
-let cell_size = 10
+let cell_size = 30 (*taille cases carré pour nombre cases totales tableau*)
 let is_alive cell = cell <> empty
 
 let rules cell n =
@@ -42,35 +42,22 @@ let put_cell cell (x, y) board =
   put cell (x, y) board
 
 let count_neighbours (x, y) board =
-  let rec count_neighbours_in_row y row =
-    match row with
-    | [] -> 0
-    | _ :: tl ->
-        let count_right =
-          if is_alive (get_cell (x, y + 1) board) then 1 else 0
-        in
-        let count_left =
-          if is_alive (get_cell (x, y - 1) board) then 1 else 0
-        in
-        count_right + count_left + count_neighbours_in_row (y + 1) tl
+  let is_valid_coord (i, j) =
+    i >= 0 && i < List.length board && j >= 0 && j < List.length (List.hd board)
   in
-  let rec count_neighbours_in_matrix x y matrix =
-    match matrix with
-    | [] -> 0
-    | row :: tl ->
-        let count_above =
-          if is_alive (get_cell (x - 1, y) board) then
-            count_neighbours_in_row y row
-          else 0
-        in
-        let count_below =
-          if is_alive (get_cell (x + 1, y) board) then
-            count_neighbours_in_row y row
-          else 0
-        in
-        count_above + count_below + count_neighbours_in_matrix (x + 1) y tl
+  let live_neighbors =
+    let offsets =
+      [ (-1, -1); (-1, 0); (-1, 1); (0, -1); (0, 1); (1, -1); (1, 0); (1, 1) ]
+    in
+    List.fold_left
+      (fun count (dx, dy) ->
+        let nx, ny = (x + dx, y + dy) in
+        if is_valid_coord (nx, ny) && is_alive (get_cell (nx, ny) board) then
+          count + 1
+        else count)
+      0 offsets
   in
-  count_neighbours_in_matrix x y board
+  live_neighbors
 
 let open_window size =
   open_graph (" " ^ string_of_int size ^ "x" ^ string_of_int (size + 20))
@@ -105,43 +92,56 @@ let draw_board board cell_size =
     done
   done
 
-let rec seed_life board size nb_cell =
-  match nb_cell with
-  | 0 -> board
-  | _ ->
-      let a = Random.int size and b = Random.int size in
-      if get_cell (a, b) board = 1 then seed_life board size nb_cell
-      else
-        let board_2 = put_cell new_cell (a, b) board in
-        seed_life board_2 size (nb_cell - 1)
+let seed_life board size count =
+  let rec place_cells count board =
+    if count = 0 then board
+    else
+      let random_row = Random.int size in
+      let random_col = Random.int size in
+      let new_board = put_cell new_cell (random_row, random_col) board in
+      place_cells (count - 1) new_board
+  in
+  (* Initialiser le générateur de nb aléatoires
+      avec une graine basée sur le temps*)
+  Random.self_init ();
+  place_cells count board
 
 let new_board size nb_cell =
   let nw_brd = gen_board size 0 in
   seed_life nw_brd size nb_cell
 
-let next_generation board size =
-  let rec fun2 (x, y) board2 =
-    match (x, y) with
-    | x, y when x = size && y = size -> board2
-    | _, y when y = size -> board2
-    | _, _ ->
-        fun2
-          (x, y + 1)
-          (put_cell
-             (rules (get_cell (x, y) board) (count_neighbours (x, y) board))
-             (x, y) board2)
+let next_generation board =
+  let apply_rules i j current_board =
+    let cell_value = get_cell (i, j) current_board in
+    let live_neighbors = count_neighbours (i, j) current_board in
+    rules cell_value live_neighbors
   in
-  fun2 (0, 0) board
+  let new_board =
+    List.mapi
+      (fun i row -> List.mapi (fun j _ -> apply_rules i j board) row)
+      board
+  in
+  new_board
 
 let rec game board size n =
-  match n with
-  | 0 -> ()
-  | n ->
-      draw_board board cell_size;
-      game (next_generation board size) size (n - 1)
+  if n = 0 then ()
+  else (
+    draw_board board size;
+    synchronize ();
+    (* Attendre 1 seconde entre les générations *)
+    Unix.sleepf 0.5;
+    let next_gen_board = next_generation board in
+    game next_gen_board size (n - 1))
 
-let new_game size nb n =
-  open_window size;
-  game (new_board size nb) size n
+let new_game board_size initial_cell_count num_generations =
+  open_window 900;
+  (* Créer un nouveau plateau de jeu avec
+     la taille spécifiée et le nombre de cellules initiales *)
+  let game_board = new_board board_size initial_cell_count in
 
-let () = new_game 100 300 1000
+  (* Jouer au jeu de la vie pour le nombre de générations spécifié *)
+  game game_board board_size num_generations;
+  ignore (wait_next_event [ Button_down ])
+(*pour fin fonction*)
+
+let () = new_game cell_size 300 100
